@@ -22,6 +22,10 @@
                 padding: 0px;
                 margin: 0px;
             }
+            .header {
+                background-image: linear-gradient(#555577, #000000);
+                padding: 20px;
+            }
             h1 {
                 font-size: 60pt;
                 font-family: Arial;
@@ -30,15 +34,15 @@
                 margin: 0;
                 padding: 0;
             }
+            p {
+                font-size: 15pt;
+                font-family: Arial;
+                text-align: center;
+            }
             h2 {
                 font-size: 20pt;
                 font-family: Arial;
                 font-weight: bold;
-                text-align: center;
-            }
-            p {
-                font-size: 15pt;
-                font-family: Arial;
                 text-align: center;
             }
             a {
@@ -57,18 +61,18 @@
                 padding: 10px;
                 /* filter: drop-shadow(0 0 5px #000000) drop-shadow(0 0 10px #000000) drop-shadow(0 0 15px #000000); */
             }
-            .header {
-                background-image: linear-gradient(#555577, #000000);
-                padding: 20px;
+            .social_link_group {
+                margin: 0px 50px 50px 50px;
+                /* background-color: #555577; */
             }
         </style>
     </head>
     <body>
         <div class="header">
-        <h1>Xinferis</h1>
-        <p>Composer of soundtracks and instrumental music</p>
+            <h1>Xinferis</h1>
+            <p>Composer of soundtracks and instrumental music</p>
         </div>
-        <div>
+        <div class="social_link_group">
         <h2>Follow</h2>
         <div>
             <a class="social_link" href="https://soundcloud.com/xinferis" target="_blank"><img class="social_icon" src="images/SoundCloud_icon_2x.png" height="32" width="32"/>SoundCloud</a>
@@ -80,7 +84,9 @@
             <a class="social_link" href="https://twitter.com/XinferisMusic" target="_blank"><img class="social_icon" src="images/Twitter_icon_2x.png" height="32" width="32"/>Twitter</a>
         </div>
         </div>
-        
+        </div>
+
+        <div class="social_link_group">
         <h2>Listen</h2>
         <div>
             <a class="social_link" href="https://music.apple.com/us/artist/xinferis/1661700110" target="_blank"><img class="social_icon" src="images/AppleMusic_icon_2x.png" height="32" width="32"/>Apple Music</a>
@@ -90,6 +96,7 @@
         </div>
         <div>
             <a class="social_link" href="https://music.youtube.com/channel/UCznLNY_dsMO3haWMrve-_pw" target="_blank"><img class="social_icon" src="images/YouTubeMusic_icon_2x.png" height="32" width="32"/>YouTube Music</a>
+        </div>
         </div>
     </body>
 </html>
