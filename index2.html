@@ -27,6 +27,7 @@
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
+                padding: 10px;
 
             }
             h1 {
@@ -54,47 +55,30 @@
             }
 
             h2 {
-                font-size: 10pt;
+                font-size: 20pt;
                 font-family: Arial;
                 font-weight: bold;
-                float: left;
-                text-shadow: 0 0 5px #000000;
+                text-align: left;
             }
             a {
                 color: white;
             }
             .social_link {
-                font-size: 10pt;
+                font-size: 15pt;
                 font-family: Arial;
-                float: left;
-            }
-            .social_icon {
-                padding: 10px;
-                filter: drop-shadow(0 0 5px #000000);
-                /* filter: drop-shadow(0 0 5px #000000) drop-shadow(0 0 10px #000000) drop-shadow(0 0 15px #000000); */
-                float: left;
-            }
-            .social_link_group {
+                text-align: left;
                 padding: 0px;
                 display: flex;
                 align-items: center;
+                justify-content: left;
             }
-            .summary {
-                float: left;
-                display: flex;
-                align-items: center;
+            .social_icon {
+                padding: 10px;
+                /* filter: drop-shadow(0 0 5px #000000) drop-shadow(0 0 10px #000000) drop-shadow(0 0 15px #000000); */
             }
-            .social_links {
-                float: right;
-            }
-            .summary_text {
-                display: flex;
-                align-items: left;
-                flex-flow: column;
-                /* background-color: #000000; */
-            }
-            .releases {
-                display: flex;
+            .social_link_group {
+                margin: 0px 50px 50px 20px;
+                /* background-color: #555577; */
             }
         </style>
     </head>
@@ -109,24 +93,31 @@
                     <p>Composer of soundtracks and instrumental music</p>
                 </div>
             </div>
-            <div class="social_links">
-                <div class="social_link_group">
-                    <h2>Follow</h2>
-                    <a class="social_link" href="https://soundcloud.com/xinferis" target="_blank"><img class="social_icon" src="images/SoundCloud_icon_2x.png" height="32" width="32"/></a>
-                    <a class="social_link" href="https://www.youtube.com/@XinferisMusic" target="_blank"><img class="social_icon" src="images/YouTube_icon_2x.png" height="32" width="32"/></a>
-                    <a class="social_link" href="https://twitter.com/XinferisMusic" target="_blank"><img class="social_icon" src="images/Twitter_icon_2x.png" height="32" width="32"/></a>
-                </div>
-                <div class="social_link_group">
-                    <h2>Listen</h2>
-                    <a class="social_link" href="https://music.apple.com/us/artist/xinferis/1661700110" target="_blank"><img class="social_icon" src="images/AppleMusic_icon_2x.png" height="32" width="32"/></a>
-                    <a class="social_link" href="https://open.spotify.com/artist/1hQWOTxb1LwJjY4UKAtUxM?si=OVz7kH7ZRQa5BJjFzvhLMw" target="_blank"><img class="social_icon" src="images/Spotify_icon_2x.png" height="32" width="32"/></a>
-                    <a class="social_link" href="https://music.youtube.com/channel/UCznLNY_dsMO3haWMrve-_pw" target="_blank"><img class="social_icon" src="images/YouTubeMusic_icon_2x.png" height="32" width="32"/></a>
-                </div>
-            </div>
         </div>
 
-        <div class="releases">
-
+        <div class="social_link_group">
+        <h2>Follow</h2>
+            <div>
+                <a class="social_link" href="https://soundcloud.com/xinferis" target="_blank"><img class="social_icon" src="images/SoundCloud_icon_2x.png" height="32" width="32"/>SoundCloud</a>
+            </div>
+            <div>
+                <a class="social_link" href="https://www.youtube.com/@XinferisMusic" target="_blank"><img class="social_icon" src="images/YouTube_icon_2x.png" height="32" width="32"/>YouTube</a>
+            </div>
+            <div>
+                <a class="social_link" href="https://twitter.com/XinferisMusic" target="_blank"><img class="social_icon" src="images/Twitter_icon_2x.png" height="32" width="32"/>Twitter</a>
+            </div>
+        </div>
+        <div class="social_link_group">
+            <h2>Listen</h2>
+            <div>
+                <a class="social_link" href="https://music.apple.com/us/artist/xinferis/1661700110" target="_blank"><img class="social_icon" src="images/AppleMusic_icon_2x.png" height="32" width="32"/>Apple Music</a>
+            </div>
+            <div>
+                <a class="social_link" href="https://open.spotify.com/artist/1hQWOTxb1LwJjY4UKAtUxM?si=OVz7kH7ZRQa5BJjFzvhLMw" target="_blank"><img class="social_icon" src="images/Spotify_icon_2x.png" height="32" width="32"/>Spotify</a>
+            </div>
+            <div>
+                <a class="social_link" href="https://music.youtube.com/channel/UCznLNY_dsMO3haWMrve-_pw" target="_blank"><img class="social_icon" src="images/YouTubeMusic_icon_2x.png" height="32" width="32"/>YouTube Music</a>
+            </div>
         </div>
     </body>
 </html>
