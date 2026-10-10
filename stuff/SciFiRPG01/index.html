@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Null Descent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050608;
+    --panel: rgba(10, 14, 20, 0.88);
+    --line: rgba(80, 200, 255, 0.25);
+    --text: #c8d4e0;
+    --dim: #6f7f90;
+    --cyan: #39d0ff;
+    --red: #ff3b4a;
+    --amber: #ffb020;
+    --green: #5aff8a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+    font-family: 'Share Tech Mono', ui-monospace, Menlo, monospace; user-select: none; }
+  #game canvas { display: block; }
+  #overlay { position: fixed; inset: 0; pointer-events: none; }
+  #vignette { position: fixed; inset: 0; pointer-events: none; opacity: 0;
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(255, 20, 30, 0.55) 100%); }
+  #scan { position: fixed; inset: 0; pointer-events: none; opacity: 0.25;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.25) 0px, rgba(0,0,0,0.25) 1px, transparent 1px, transparent 3px),
+                radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.85) 100%); }
+  .hidden { display: none !important; }
+  .orb { font-family: 'Orbitron', sans-serif; letter-spacing: 0.08em; }
+
+  /* HUD */
+  #hud { position: fixed; inset: 0; pointer-events: none; }
+  #deckinfo { position: absolute; top: 14px; left: 16px; font-size: 13px; line-height: 1.5; text-shadow: 0 0 6px #000; }
+  #deckinfo .deck { font-family: 'Orbitron', sans-serif; font-size: 18px; color: var(--cyan); letter-spacing: 0.1em; }
+  #deckinfo .dim { color: var(--dim); }
+  #mapwrap { position: absolute; top: 14px; right: 16px; padding: 6px; background: var(--panel); border: 1px solid var(--line); }
+  #minimap { display: block; width: 190px; height: 190px; image-rendering: pixelated; }
+  #mapwrap .meta { font-size: 11px; color: var(--dim); display: flex; justify-content: space-between; margin-top: 4px; }
+  #bossbar { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: min(560px, 60vw); text-align: center; }
+  #bossbar .name { font-family: 'Orbitron', sans-serif; font-size: 15px; color: #ff6a8a; letter-spacing: 0.3em; text-shadow: 0 0 10px #ff2a6a; }
+  #bossbar .bar { height: 10px; margin-top: 6px; background: rgba(40, 0, 10, 0.8); border: 1px solid #ff2a6a; }
+  #bossbar .fill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff2a6a, #ff7a3a); transition: width 0.15s; }
+  #log { position: absolute; left: 16px; bottom: 16px; width: min(420px, 40vw); font-size: 13px; display: flex; flex-direction: column-reverse; gap: 2px; }
+  #log div { text-shadow: 0 0 4px #000, 0 0 2px #000; transition: opacity 1s; }
+  #bottom { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(520px, 46vw); }
+  .barrow { display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 12px; }
+  .barrow .lbl { width: 30px; color: var(--dim); }
+  .barrow .bar { flex: 1; height: 14px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.12); position: relative; }
+  .barrow .fill { height: 100%; transition: width 0.1s; }
+  .barrow .txt { position: absolute; inset: 0; font-size: 11px; text-align: center; line-height: 13px; color: #fff; text-shadow: 0 0 3px #000; }
+  #hpfill { background: linear-gradient(90deg, #a01828, #ff3b4a); }
+  #enfill { background: linear-gradient(90deg, #1060a0, #39d0ff); }
+  #xpfill { background: linear-gradient(90deg, #8a6010, #ffb020); }
+  #xprow .bar { height: 6px; }
+  #abilities { display: flex; gap: 8px; justify-content: center; margin-bottom: 6px; }
+  .ab { width: 58px; height: 52px; background: var(--panel); border: 1px solid var(--line); position: relative; text-align: center; overflow: hidden; }
+  .ab .key { position: absolute; top: 2px; left: 4px; font-size: 10px; color: var(--cyan); }
+  .ab .nm { position: absolute; bottom: 3px; left: 0; right: 0; font-size: 10px; color: var(--dim); }
+  .ab .ic { font-size: 20px; line-height: 40px; }
+  .ab .cd { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); height: 0%; }
+  .ab .cnt { position: absolute; top: 2px; right: 4px; font-size: 11px; color: #fff; }
+  .ab.off { opacity: 0.45; }
+  #prompt { position: absolute; left: 50%; bottom: 170px; transform: translateX(-50%); padding: 6px 14px; background: var(--panel);
+    border: 1px solid var(--line); font-size: 14px; white-space: nowrap; }
+  #prompt b { color: var(--cyan); }
+  #stats { position: absolute; right: 16px; top: 236px; text-align: right; font-size: 12px; color: var(--dim); text-shadow: 0 0 4px #000; line-height: 1.5; }
+  #stats b { color: var(--text); font-weight: normal; }
+
+  /* Screens & modals */
+  .screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; }
+  #title { background: linear-gradient(180deg, rgba(5,6,8,0.2), rgba(5,6,8,0.75)); }
+  #title h1 { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: clamp(42px, 8vw, 92px); margin: 0; letter-spacing: 0.12em;
+    color: #dfe9f5; text-shadow: 0 0 24px rgba(57, 208, 255, 0.55), 0 0 2px #fff; }
+  #title .sub { color: var(--cyan); letter-spacing: 0.35em; font-size: 14px; margin: 6px 0 26px; }
+  #title .station { font-size: 15px; color: var(--text); margin-bottom: 18px; min-height: 20px; }
+  .btn { pointer-events: auto; font-family: 'Orbitron', sans-serif; letter-spacing: 0.15em; font-size: 14px; color: var(--text);
+    background: rgba(20, 40, 60, 0.6); border: 1px solid var(--cyan); padding: 12px 28px; cursor: pointer; margin: 6px; }
+  .btn:hover { background: rgba(57, 208, 255, 0.2); color: #fff; box-shadow: 0 0 16px rgba(57, 208, 255, 0.35); }
+  .btn.small { font-size: 11px; padding: 7px 14px; }
+  .btn.red { border-color: var(--red); }
+  .btn.red:hover { background: rgba(255, 59, 74, 0.2); box-shadow: 0 0 16px rgba(255, 59, 74, 0.35); }
+  .seedrow { display: flex; gap: 8px; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 13px; color: var(--dim); }
+  .seedrow input { pointer-events: auto; font-family: inherit; background: rgba(0,0,0,0.6); color: var(--text); border: 1px solid var(--line);
+    padding: 7px 10px; width: 140px; text-transform: uppercase; letter-spacing: 0.15em; }
+  .controls { margin-top: 26px; font-size: 13px; color: var(--dim); line-height: 1.8; max-width: 640px; padding: 0 16px; }
+  .controls b { color: var(--cyan); font-weight: normal; }
+  .record { margin-top: 12px; font-size: 12px; color: var(--amber); }
+
+  .modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.55); }
+  .panel { background: var(--panel); border: 1px solid var(--line); box-shadow: 0 0 40px rgba(0,0,0,0.8), inset 0 0 30px rgba(57,208,255,0.05);
+    padding: 20px 24px; max-width: 94vw; max-height: 90vh; overflow: auto; pointer-events: auto; }
+  .panel h2 { font-family: 'Orbitron', sans-serif; margin: 0 0 14px; font-size: 18px; letter-spacing: 0.15em; color: var(--cyan); }
+  .panel .hint { font-size: 12px; color: var(--dim); margin-top: 12px; }
+
+  #levelup .cards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .card { width: 190px; padding: 16px; border: 1px solid var(--line); background: rgba(20,30,45,0.6); cursor: pointer; text-align: left; }
+  .card:hover { border-color: var(--cyan); background: rgba(57,208,255,0.12); }
+  .card .t { font-family: 'Orbitron', sans-serif; font-size: 15px; margin-bottom: 8px; }
+  .card .d { font-size: 13px; color: var(--dim); line-height: 1.5; }
+  .card .k { float: right; color: var(--cyan); font-size: 12px; }
+
+  #inventory .cols { display: flex; gap: 24px; flex-wrap: wrap; }
+  .slots { display: flex; flex-direction: column; gap: 8px; width: 290px; }
+  .slot { border: 1px solid rgba(255,255,255,0.12); padding: 8px 10px; background: rgba(0,0,0,0.35); min-height: 52px; cursor: default; }
+  .slot .sl { font-size: 10px; color: var(--dim); letter-spacing: 0.2em; }
+  .slot .nm { font-size: 13px; margin-top: 2px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 70px); gap: 6px; }
+  .cell { width: 70px; height: 70px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.35); display: flex; align-items: center;
+    justify-content: center; flex-direction: column; font-size: 10px; cursor: pointer; text-align: center; padding: 3px; position: relative; }
+  .cell:hover { background: rgba(57,208,255,0.12); }
+  .cell .ic { font-size: 22px; line-height: 1; margin-bottom: 3px; }
+  .cell.empty { cursor: default; }
+  .cell.empty:hover { background: rgba(0,0,0,0.35); }
+  .statlist { font-size: 12px; line-height: 1.7; margin-top: 10px; color: var(--dim); }
+  .statlist b { color: var(--text); font-weight: normal; float: right; }
+
+  #tooltip { position: fixed; pointer-events: none; background: rgba(6, 9, 14, 0.96); border: 1px solid var(--line); padding: 10px 12px;
+    font-size: 12px; max-width: 300px; z-index: 50; line-height: 1.5; }
+  .tt-name { font-size: 14px; }
+  .tt-sub { color: var(--dim); font-size: 11px; margin-bottom: 6px; }
+  .tt-main { color: #fff; }
+  .tt-affix { color: #8fc8ff; }
+  .tt-value { color: var(--amber); margin-top: 6px; font-size: 11px; }
+  .up { color: var(--green); } .down { color: var(--red); }
+
+  #terminal .panel { max-width: 560px; border-color: rgba(90, 255, 138, 0.35); }
+  #terminal h2 { color: var(--green); font-size: 14px; }
+  #termtext { white-space: pre-wrap; font-size: 15px; line-height: 1.6; color: #a8ffbf; min-height: 120px; text-shadow: 0 0 6px rgba(90,255,138,0.4); }
+  #termreward { margin-top: 12px; color: var(--amber); font-size: 13px; }
+
+  #shop .items { display: flex; flex-direction: column; gap: 8px; min-width: 380px; }
+  .shopitem { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.35); font-size: 13px; }
+  .shopitem.sold { opacity: 0.35; }
+
+  #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.6s; }
+  #decktitle { position: fixed; top: 28%; left: 0; right: 0; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.8s; }
+  #decktitle .a { font-family: 'Orbitron', sans-serif; font-size: 38px; letter-spacing: 0.3em; color: #e6f0ff; text-shadow: 0 0 20px rgba(57,208,255,0.6); }
+  #decktitle .b { font-size: 15px; letter-spacing: 0.4em; color: var(--cyan); margin-top: 8px; }
+  #gameover h1, #victory h1 { font-family: 'Orbitron', sans-serif; font-size: clamp(36px, 7vw, 72px); margin: 0 0 10px; letter-spacing: 0.15em; }
+  #gameover h1 { color: var(--red); text-shadow: 0 0 24px rgba(255,59,74,0.6); }
+  #victory h1 { color: #e6c8ff; text-shadow: 0 0 24px rgba(192,77,255,0.7); }
+  .summary { font-size: 15px; line-height: 1.8; margin-bottom: 20px; color: var(--text); }
+  .summary span { color: var(--amber); }
+  #gameover, #victory { background: rgba(0,0,0,0.7); }
+
+  @media (max-width: 760px) {
+    #minimap { width: 120px; height: 120px; }
+    #stats { top: 160px; }
+    #bottom { width: calc(100vw - 32px); bottom: 12px; }
+    #log { bottom: 150px; width: calc(100vw - 32px); }
+  }
+</style>
+</head>
+<body>
+<div id="game"></div>
+<canvas id="overlay"></canvas>
+<div id="vignette"></div>
+<div id="scan"></div>
+
+<div id="hud" class="hidden">
+  <div id="deckinfo"></div>
+  <div id="bossbar" class="hidden"><div class="name" id="bossname"></div><div class="bar"><div class="fill" id="bossfill"></div></div></div>
+  <div id="mapwrap"><canvas id="minimap" width="190" height="190"></canvas><div class="meta"><span id="mapseed"></span><span>[M] zoom</span></div></div>
+  <div id="stats"></div>
+  <div id="log"></div>
+  <div id="prompt" class="hidden"></div>
+  <div id="bottom">
+    <div id="abilities">
+      <div class="ab" id="ab-dash"><span class="key">SPACE</span><div class="ic">»</div><div class="nm">Dash</div><div class="cd"></div></div>
+      <div class="ab" id="ab-emp"><span class="key">Q</span><div class="ic">✺</div><div class="nm">EMP</div><div class="cd"></div></div>
+      <div class="ab" id="ab-med"><span class="key">R</span><span class="cnt" id="medcount">0</span><div class="ic">✚</div><div class="nm">Medkit</div><div class="cd"></div></div>
+      <div class="ab" id="ab-inv"><span class="key">I</span><div class="ic">▦</div><div class="nm">Gear</div></div>
+    </div>
+    <div class="barrow"><span class="lbl">HULL</span><div class="bar"><div class="fill" id="hpfill"></div><div class="txt" id="hptxt"></div></div></div>
+    <div class="barrow"><span class="lbl">NRG</span><div class="bar"><div class="fill" id="enfill"></div><div class="txt" id="entxt"></div></div></div>
+    <div class="barrow" id="xprow"><span class="lbl" id="lvl">L1</span><div class="bar"><div class="fill" id="xpfill"></div></div></div>
+  </div>
+</div>
+
+<div id="title" class="screen">
+  <h1>NULL DESCENT</h1>
+  <div class="sub">A DERELICT STATION · TEN DECKS · ONE SIGNAL</div>
+  <div class="station" id="stationname"></div>
+  <div class="seedrow">SEED <input id="seedinput" maxlength="10" spellcheck="false"><button class="btn small" id="reroll">↻</button></div>
+  <div><button class="btn" id="startbtn">BEGIN DESCENT</button></div>
+  <div class="controls">
+    <b>WASD</b> move · <b>MOUSE</b> aim · <b>LMB</b> fire · <b>SPACE</b> dash · <b>Q</b> EMP nova · <b>R</b> medkit<br>
+    <b>E</b> interact · <b>I / TAB</b> gear · <b>WHEEL</b> zoom · <b>ESC</b> pause<br>
+    Every deck is procedurally generated. Reach Deck 10 and silence the Signal.
+  </div>
+  <div class="record" id="record"></div>
+</div>
+
+<div id="levelup" class="modal hidden"><div class="panel">
+  <h2>SYSTEMS UPGRADE · LEVEL <span id="lvlnum"></span></h2>
+  <div class="cards">
+    <div class="card" data-attr="vit"><span class="k">[1]</span><div class="t" style="color:#ff6a7a">VITALITY</div><div class="d">+12 Max Hull<br>Reinforced life support.</div></div>
+    <div class="card" data-attr="pow"><span class="k">[2]</span><div class="t" style="color:#ffb020">POWER</div><div class="d">+7% Weapon Damage<br>+1% Crit Chance</div></div>
+    <div class="card" data-attr="tech"><span class="k">[3]</span><div class="t" style="color:#39d0ff">TECH</div><div class="d">+10 Max Energy<br>+0.8 Energy/s<br>+6% Ability Power</div></div>
+  </div>
+  <div class="hint">Points remaining: <span id="ptsleft"></span></div>
+</div></div>
+
+<div id="inventory" class="modal hidden"><div class="panel">
+  <h2>GEAR · <span id="invcredits" style="color:var(--amber)"></span></h2>
+  <div class="cols">
+    <div>
+      <div class="slots" id="equipslots"></div>
+      <div class="statlist" id="statlist"></div>
+    </div>
+    <div>
+      <div class="grid" id="backpack"></div>
+      <div class="hint">Click to equip · Right-click to scrap for credits · ESC to close</div>
+    </div>
+  </div>
+</div></div>
+
+<div id="shop" class="modal hidden"><div class="panel">
+  <h2>FABRICATOR · <span id="shopcredits" style="color:var(--amber)"></span></h2>
+  <div class="items" id="shopitems"></div>
+  <div class="hint">Hover items for details · ESC to close</div>
+</div></div>
+
+<div id="terminal" class="modal hidden"><div class="panel">
+  <h2 id="termtitle"></h2>
+  <div id="termtext"></div>
+  <div id="termreward"></div>
+  <div class="hint">[E] / ESC to disconnect</div>
+</div></div>
+
+<div id="pause" class="modal hidden"><div class="panel" style="text-align:center">
+  <h2>PAUSED</h2>
+  <button class="btn" id="resumebtn">RESUME</button><br>
+  <button class="btn red" id="abandonbtn">ABANDON RUN</button>
+</div></div>
+
+<div id="gameover" class="screen hidden">
+  <h1>SIGNAL LOST</h1>
+  <div class="summary" id="deathsummary"></div>
+  <div><button class="btn" id="retrybtn">RETRY SEED</button><button class="btn" id="newbtn">NEW STATION</button></div>
+</div>
+
+<div id="victory" class="screen hidden">
+  <h1>SILENCE</h1>
+  <div class="summary" id="winsummary"></div>
+  <div><button class="btn" id="winnewbtn">NEW STATION</button></div>
+</div>
+
+<div id="tooltip" class="hidden"></div>
+<div id="decktitle"><div class="a" id="dt-a"></div><div class="b" id="dt-b"></div></div>
+<div id="fade"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/util.js"></script>
+<script src="js/models.js"></script>
+<script src="js/world.js"></script>
+<script src="js/items.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
