@@ -122,6 +122,8 @@ const G = {
 
 const keys = {};
 const mouse = { x: 0, y: 0, down: false, world: new THREE.Vector3() };
+// gamepad state; `active` means the pad (not the mouse) owns aiming
+const pad = { active: false, lx: 0, ly: 0, rx: 0, ry: 0, fire: false, aimX: 0, aimZ: 1, prev: [] };
 
 // ---------------- Player ----------------
 const playerMesh = makePlayerModel();
@@ -729,7 +731,19 @@ const raycaster = new THREE.Raycaster();
 const aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.95);
 const _ndc = new THREE.Vector2();
 
+// screen-space input (right/up) from keyboard, or the left stick when deflected
+function moveInput() {
+  if (pad.lx || pad.ly) return [pad.lx, -pad.ly];
+  return [(keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0),
+    (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0)];
+}
+
 function updateAim() {
+  if (pad.active) {
+    const p = G.player;
+    mouse.world.set(p.x + pad.aimX * 5, -aimPlane.constant, p.z + pad.aimZ * 5);
+    return;
+  }
   _ndc.set((mouse.x / window.innerWidth) * 2 - 1, -(mouse.y / window.innerHeight) * 2 + 1);
   raycaster.setFromCamera(_ndc, camera);
   raycaster.ray.intersectPlane(aimPlane, mouse.world);
@@ -740,11 +754,10 @@ function updatePlayer(dt) {
   p.energy = Math.min(s.maxEnergy, p.energy + s.regen * dt);
   p.fireCd -= dt; p.dashCd -= dt; p.empCd -= dt; p.medCd -= dt; p.invuln -= dt; p.hurtFlash -= dt;
 
-  const ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
-  const iy = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+  const [ix, iy] = moveInput();
   let mx = (ix - iy) * Math.SQRT1_2, mz = (-ix - iy) * Math.SQRT1_2;
   const ml = Math.hypot(mx, mz);
-  if (ml > 0) { mx /= ml; mz /= ml; }
+  if (ml > 1) { mx /= ml; mz /= ml; } // keep analog stick magnitude, cap keyboard diagonals
 
   updateAim();
   const ax = mouse.world.x - p.x, az = mouse.world.z - p.z;
@@ -763,7 +776,7 @@ function updatePlayer(dt) {
   const moving = Math.hypot(p.vx, p.vz) > 0.5;
   if (moving) p.walk += dt * 11;
 
-  if (mouse.down && p.fireCd <= 0 && p.dashT <= 0) fire();
+  if ((mouse.down || pad.fire) && p.fireCd <= 0 && p.dashT <= 0) fire();
 
   // model
   playerMesh.position.set(p.x, 0, p.z);
@@ -830,8 +843,7 @@ function fire() {
 function dash() {
   const p = G.player;
   if (p.dashCd > 0 || p.energy < 20) { if (p.energy < 20) SFX.play('deny'); return; }
-  const ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
-  const iy = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+  const [ix, iy] = moveInput();
   let dx = (ix - iy) * Math.SQRT1_2, dz = (-ix - iy) * Math.SQRT1_2;
   if (!dx && !dz) { dx = Math.sin(p.facing); dz = Math.cos(p.facing); }
   const l = Math.hypot(dx, dz);
@@ -1072,6 +1084,7 @@ function frame(now) {
   const dt = clamp((now - lastT) / 1000, 0, 0.05);
   lastT = now;
   G.time += dt;
+  pollGamepad();
 
   if (G.state === 'play') {
     G.runTime += dt;
@@ -1590,15 +1603,82 @@ window.addEventListener('keydown', (ev) => {
 });
 window.addEventListener('keyup', (ev) => { keys[ev.code] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouse.down = false; });
-window.addEventListener('mousemove', (ev) => { mouse.x = ev.clientX; mouse.y = ev.clientY; });
+window.addEventListener('mousemove', (ev) => { mouse.x = ev.clientX; mouse.y = ev.clientY; pad.active = false; });
 renderer.domElement.addEventListener('mousedown', (ev) => { if (ev.button === 0) { mouse.down = true; SFX.init(); } });
 window.addEventListener('mouseup', (ev) => { if (ev.button === 0) mouse.down = false; });
 window.addEventListener('contextmenu', (ev) => ev.preventDefault());
 window.addEventListener('wheel', (ev) => {
   if (G.state !== 'play') return;
-  viewSize = clamp(viewSize + Math.sign(ev.deltaY) * 0.8, 6.5, 16);
-  resize();
+  zoomBy(Math.sign(ev.deltaY) * 0.8);
 }, { passive: true });
+
+// Gamepad (standard mapping): LS move · RS aim · RT fire · A/LT dash · LB EMP · Y medkit · X interact
+// VIEW gear · START pause · B back · D-pad ↑ upgrade, ↓ map, ←/→ zoom; in level-up D-pad ←/↑/→ = 1/2/3
+function stick(x, y, dz) {
+  const m = Math.hypot(x, y);
+  if (m < dz) return [0, 0];
+  const k = Math.min(1, (m - dz) / (1 - dz)) / m;
+  return [x * k, y * k];
+}
+function zoomBy(d) {
+  viewSize = clamp(viewSize + d, 6.5, 16);
+  resize();
+}
+function pollGamepad() {
+  const gp = navigator.getGamepads ? [...navigator.getGamepads()].find((g) => g && g.connected) : null;
+  if (!gp) { pad.lx = pad.ly = pad.rx = pad.ry = 0; pad.fire = false; pad.prev.length = 0; return; }
+  const btn = (i) => !!gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.3);
+  const hit = (i) => btn(i) && !pad.prev[i];
+  [pad.lx, pad.ly] = stick(gp.axes[0] || 0, gp.axes[1] || 0, 0.2);
+  [pad.rx, pad.ry] = stick(gp.axes[2] || 0, gp.axes[3] || 0, 0.3);
+  pad.fire = btn(7);
+  // aim with the right stick; fall back to the move direction while it's idle
+  const ax = pad.rx || pad.lx, ay = pad.ry || pad.ly;
+  if (ax || ay) {
+    const l = Math.hypot(ax, ay);
+    const ix = ax / l, iy = -ay / l;
+    pad.aimX = (ix - iy) * Math.SQRT1_2; pad.aimZ = (-ix - iy) * Math.SQRT1_2;
+  }
+  if (ax || ay || gp.buttons.some((b) => b.pressed)) {
+    if (!pad.active && G.player) { pad.aimX = Math.sin(G.player.facing); pad.aimZ = Math.cos(G.player.facing); }
+    pad.active = true;
+  }
+  const anyHit = gp.buttons.some((b, i) => hit(i));
+  if (anyHit) SFX.init();
+
+  if (hit(9)) { // START
+    if (G.state === 'title') startRun();
+    else if (G.state === 'dead') startRun();
+    else if (G.state === 'won') { setSeed(); startRun(); }
+    else if (openModalId) closeModal();
+    else if (G.state === 'play') openModal('pause');
+  } else if (G.state === 'title' || G.state === 'dead') {
+    if (hit(0)) startRun();
+  } else if (G.state === 'won') {
+    if (hit(0)) { setSeed(); startRun(); }
+  } else if (openModalId) {
+    if (hit(1)) closeModal();
+    else if (openModalId === 'levelup') {
+      if (hit(14)) spendPoint('vit');
+      if (hit(12)) spendPoint('pow');
+      if (hit(15)) spendPoint('tech');
+    } else if (openModalId === 'pause' && hit(0)) closeModal();
+    else if (openModalId === 'terminal' && (hit(2) || hit(0))) closeModal();
+    else if (openModalId === 'inventory' && hit(8)) closeModal();
+  } else if (G.state === 'play') {
+    if (hit(0) || hit(6)) dash();
+    if (hit(4)) emp();
+    if (hit(3)) useMedkit();
+    if (hit(2)) interact();
+    if (hit(8)) toggleInventory();
+    if (hit(12) && G.player.points > 0) openLevelUp();
+    if (hit(13)) { G.bigMap = !G.bigMap; $('minimap').style.width = $('minimap').style.height = G.bigMap ? '380px' : ''; }
+    if (hit(14)) zoomBy(0.8);
+    if (hit(15)) zoomBy(-0.8);
+  }
+  for (let i = 0; i < gp.buttons.length; i++) pad.prev[i] = btn(i);
+}
+window.addEventListener('gamepadconnected', (ev) => { if (G.player && G.state !== 'title') addLog(`Controller connected: ${ev.gamepad.id.split('(')[0].trim()}`, '#39d0ff'); });
 
 $('startbtn').onclick = startRun;
 $('reroll').onclick = () => { setSeed(); loadDeck(1, true); };

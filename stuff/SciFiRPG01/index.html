@@ -22,7 +22,7 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
     font-family: 'Share Tech Mono', ui-monospace, Menlo, monospace; user-select: none; }
   #game canvas { display: block; }
-  #overlay { position: fixed; inset: 0; pointer-events: none; }
+  #overlay { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   #vignette { position: fixed; inset: 0; pointer-events: none; opacity: 0;
     background: radial-gradient(ellipse at center, transparent 45%, rgba(255, 20, 30, 0.55) 100%); }
   #scan { position: fixed; inset: 0; pointer-events: none; opacity: 0.25;
@@ -190,6 +190,7 @@
   <div class="controls">
     <b>WASD</b> move · <b>MOUSE</b> aim · <b>LMB</b> fire · <b>SPACE</b> dash · <b>Q</b> EMP nova · <b>R</b> medkit<br>
     <b>E</b> interact · <b>I / TAB</b> gear · <b>WHEEL</b> zoom · <b>ESC</b> pause<br>
+    <b>GAMEPAD</b> LS move · RS aim · <b>RT</b> fire · <b>A/LT</b> dash · <b>LB</b> EMP · <b>Y</b> medkit · <b>X</b> interact · <b>VIEW</b> gear · <b>START</b> pause<br>
     Every deck is procedurally generated. Reach Deck 10 and silence the Signal.
   </div>
   <div class="record" id="record"></div>
@@ -255,10 +256,10 @@
 <div id="fade"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="js/util.js"></script>
-<script src="js/models.js"></script>
-<script src="js/world.js"></script>
-<script src="js/items.js"></script>
-<script src="js/game.js"></script>
+<script src="js/util.js?v=871251ddc3"></script>
+<script src="js/models.js?v=77dd2f09cf"></script>
+<script src="js/world.js?v=c8a1907fed"></script>
+<script src="js/items.js?v=dbd3e84e69"></script>
+<script src="js/game.js?v=d07da5b7fa"></script>
 </body>
 </html>
